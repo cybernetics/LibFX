@@ -1,8 +1,8 @@
-package org.codefx.notification.decoration;
+package org.codefx.libfx.notification.decoration;
 
 import java.util.function.Consumer;
 
-import org.codefx.notification.SendingNotification;
+import org.codefx.libfx.notification.SendingNotification;
 
 /**
  * Abstract base class for all decorators. By default all method calls are delegated to the decorated

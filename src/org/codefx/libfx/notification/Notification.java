@@ -1,4 +1,4 @@
-package org.codefx.notification;
+package org.codefx.libfx.notification;
 
 import java.util.function.Consumer;
 

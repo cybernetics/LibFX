@@ -1,4 +1,4 @@
-package org.codefx.notification;
+package org.codefx.libfx.notification;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,8 +7,8 @@ import java.util.function.UnaryOperator;
 
 import javafx.application.Platform;
 
-import org.codefx.notification.decoration.RunLaterSendingNotificationDecorator;
-import org.codefx.notification.decoration.SynchronizedSendingNotificationDecorator;
+import org.codefx.libfx.notification.decoration.RunLaterSendingNotificationDecorator;
+import org.codefx.libfx.notification.decoration.SynchronizedSendingNotificationDecorator;
 
 /**
  * Usability class for easier creation of decorated {@link SendingNotification SendingNotifications}. The same builder

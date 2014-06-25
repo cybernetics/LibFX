@@ -1,4 +1,4 @@
-package org.codefx.notification;
+package org.codefx.libfx.notification;
 
 /**
  * A {@link Notification} which provides a method to send messages.

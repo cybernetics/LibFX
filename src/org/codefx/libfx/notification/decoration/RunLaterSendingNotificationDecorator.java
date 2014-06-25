@@ -1,8 +1,8 @@
-package org.codefx.notification.decoration;
+package org.codefx.libfx.notification.decoration;
 
 import javafx.application.Platform;
 
-import org.codefx.notification.SendingNotification;
+import org.codefx.libfx.notification.SendingNotification;
 
 /**
  * A decoration of a {@link SendingNotification} which delegates sending the message to
