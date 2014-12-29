@@ -8,7 +8,17 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
+/*
+ * TODO document: hashCode must not change after instance was added; map does not accept null keys; map throws
+ * ClassCastExceptions if key arguments can not be evaluated by 'comparator'
+ */
+
 public class EqualityComparatorMap<K, V> implements Map<K, V> {
+
+	/*
+	 * Throughout this code, it is important to carefully distinguish keys of type 'K' and their wrapped counterparts of
+	 * type 'EqualityComparatorObject<K>'. Therefore the first are usually called 'key', the latter 'eqKey'.
+	 */
 
 	/*
 	 * ATTRIBTUES
@@ -67,19 +77,17 @@ public class EqualityComparatorMap<K, V> implements Map<K, V> {
 	 */
 
 	/**
-	 * Creates a new comparator object for the given key.<br>
-	 * If the key is not of type 'K', null is returned which has to be checked by the calling functions.
+	 * Creates a new comparator object for the given key.
 	 *
 	 * @param key
-	 * @return
+	 *            the key for which a equality comparer wrapper will be constructed
+	 * @return a new instance of {@link EqualityComparatorObject}
+	 * @throws ClassCastException
+	 *             if the specified {@code key} can not be used as an argument to {@link #comparator}
 	 */
-	@SuppressWarnings("unchecked")
-	private EqualityComparatorObject<K> createKey(Object key) {
-		try {
-			return new SimpleEqualityComparatorObject<K>(comparator, (K) key);
-		} catch (ClassCastException e) {
-			return null;
-		}
+	private EqualityComparatorObject<K> createEqualityComparatorKey(Object key) throws ClassCastException {
+		Objects.requireNonNull(key, "The argument 'key' must not be null.");
+		return new HashCachingEqualityComparatorObject<>(comparator, key);
 	}
 
 	/*
@@ -98,11 +106,8 @@ public class EqualityComparatorMap<K, V> implements Map<K, V> {
 
 	@Override
 	public boolean containsKey(Object key) {
-		EqualityComparatorObject<K> comparatorKey = createKey(key);
-		if (comparatorKey == null)
-			return false;
-		else
-			return innerMap.containsKey(comparatorKey);
+		EqualityComparatorObject<K> eqKey = createEqualityComparatorKey(key);
+		return innerMap.containsKey(eqKey);
 	}
 
 	@Override
@@ -112,37 +117,31 @@ public class EqualityComparatorMap<K, V> implements Map<K, V> {
 
 	@Override
 	public V get(Object key) {
-		EqualityComparatorObject<K> comparatorKey = createKey(key);
-		if (comparatorKey == null)
-			return null;
-		else
-			return innerMap.get(comparatorKey);
+		EqualityComparatorObject<K> eqKey = createEqualityComparatorKey(key);
+		return innerMap.get(eqKey);
 	}
 
 	@Override
 	public V put(K key, V value) {
-		EqualityComparatorObject<K> comparatorKey = new SimpleEqualityComparatorObject<K>(comparator, key);
-		return innerMap.put(comparatorKey, value);
+		EqualityComparatorObject<K> eqKey = createEqualityComparatorKey(key);
+		return innerMap.put(eqKey, value);
 	}
 
-	// TODO remove
 	/**
 	 * Calls 'put' with the given entry's key and value.
 	 *
 	 * @param entry
+	 *            the entry whose key and value will be {@link #put(Object, Object)}
 	 * @return the previous value associated with the key, or null if there was no mapping for key
 	 */
-	public V put(Entry<? extends K, ? extends V> entry) {
+	private V put(Entry<? extends K, ? extends V> entry) {
 		return put(entry.getKey(), entry.getValue());
 	}
 
 	@Override
 	public V remove(Object key) {
-		EqualityComparatorObject<K> comparatorKey = createKey(key);
-		if (comparatorKey == null)
-			return null;
-		else
-			return innerMap.remove(comparatorKey);
+		EqualityComparatorObject<K> eqKey = createEqualityComparatorKey(key);
+		return innerMap.remove(eqKey);
 	}
 
 	@Override
@@ -360,9 +359,15 @@ public class EqualityComparatorMap<K, V> implements Map<K, V> {
 		@Override
 		@SuppressWarnings("unchecked")
 		public boolean contains(Object o) {
+			// check whether the argument is even an entry
 			if (!(o instanceof Entry))
 				return false;
 			Entry<K, V> entry = (Entry<K, V>) o;
+
+			// make sure the key is not null
+			if (entry.getKey() == null)
+				return false;
+
 			if (comparatorMap.containsKey(entry.getKey())) {
 				V currentValue = comparatorMap.get(entry.getKey());
 				return Objects.equals(currentValue, entry.getValue());

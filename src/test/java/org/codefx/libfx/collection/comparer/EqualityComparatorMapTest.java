@@ -11,13 +11,13 @@ public class EqualityComparatorMapTest extends MapInterfaceTest<TestObject, Stri
 	/**
 	 * The comparator used to compare test keys.
 	 */
-	private EqualityComparator<TestObject> comparator;
+	private final EqualityComparator<? super TestObject> comparator;
 
 	/**
 	 * Constructor
 	 */
 	public EqualityComparatorMapTest() {
-		super(true, true, true, true, true, true);
+		super(false, true, true, true, true, true);
 
 		// create a new comparator which only uses the string attribute.
 		comparator = new EqualityComparator<TestObject>() {
@@ -29,10 +29,7 @@ public class EqualityComparatorMapTest extends MapInterfaceTest<TestObject, Stri
 
 			@Override
 			public int hashCode(TestObject obj) {
-				if (obj.getStringAttribute() == null)
-					return 0;
-				else
-					return obj.getStringAttribute().hashCode();
+				return obj.getStringAttribute().hashCode();
 			}
 
 		};
@@ -62,4 +59,18 @@ public class EqualityComparatorMapTest extends MapInterfaceTest<TestObject, Stri
 		return "C";
 	}
 
+	/*
+	 * TESTS
+	 */
+
+	public void test_containsKey_keyOfWrongType_false() {
+		Map<TestObject, String> map = makePopulatedMap();
+
+		try {
+			map.containsKey("No TestObject");
+			fail();
+		} catch (ClassCastException e) {
+			// expected exception because a string is no valid argument to the used comparator (see above)
+		}
+	}
 }

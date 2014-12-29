@@ -4,6 +4,8 @@ import java.util.Collection;
 
 /**
  * Implements default equals and hashCode methods for collections as used in 'AbstractSet'.
+ * <p>
+ * TODO turn into an implementation of {@link EqualityComparator}
  */
 public class CollectionComparer {
 
