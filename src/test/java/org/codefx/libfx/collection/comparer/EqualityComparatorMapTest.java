@@ -6,7 +6,7 @@ import java.util.Objects;
 /**
  * Implements a concrete map interface test for 'CustomizableHashMap'.
  */
-public class ComparerHashMapTest extends MapInterfaceTest<TestObject, String> {
+public class EqualityComparatorMapTest extends MapInterfaceTest<TestObject, String> {
 
 	/**
 	 * The comparator used to compare test keys.
@@ -16,7 +16,7 @@ public class ComparerHashMapTest extends MapInterfaceTest<TestObject, String> {
 	/**
 	 * Constructor
 	 */
-	public ComparerHashMapTest() {
+	public EqualityComparatorMapTest() {
 		super(true, true, true, true, true, true);
 
 		// create a new comparator which only uses the string attribute.
@@ -40,12 +40,12 @@ public class ComparerHashMapTest extends MapInterfaceTest<TestObject, String> {
 
 	@Override
 	protected Map<TestObject, String> makeEmptyMap() throws UnsupportedOperationException {
-		return new ComparerHashMap<>(comparator);
+		return EqualityComparatorMap.forHashMap(comparator);
 	}
 
 	@Override
 	protected Map<TestObject, String> makePopulatedMap() throws UnsupportedOperationException {
-		ComparerHashMap<TestObject, String> map = new ComparerHashMap<>(comparator);
+		Map<TestObject, String> map = EqualityComparatorMap.forHashMap(comparator);
 		map.put(new TestObject("a", 0), "A");
 		map.put(new TestObject("b", 1), "B");
 		map.put(new TestObject("d", 4), "D");

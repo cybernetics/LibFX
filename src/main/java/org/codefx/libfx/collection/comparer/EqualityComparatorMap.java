@@ -6,22 +6,23 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
-public class ComparerHashMap<K, V> implements Map<K, V> {
+public class EqualityComparatorMap<K, V> implements Map<K, V> {
 
 	/*
 	 * ATTRIBTUES
 	 */
 
 	/**
-	 * The comparator used for the key's equality and hash code.
+	 * The comparator used for the keys' equality and hash code.
 	 */
-	private final EqualityComparator<K> comparator;
+	private final EqualityComparator<? super K> comparator;
 
 	/**
 	 * The actual map used to store the objects.
 	 */
-	private final HashMap<SimpleEqualityComparatorObject<K>, V> innerMap;
+	private final Map<EqualityComparatorObject<K>, V> innerMap;
 
 	/**
 	 * The view on this map's entries.
@@ -39,18 +40,26 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 	private final ValueCollection values;
 
 	/*
-	 * CONSTRUCTORS
+	 * CONSTRUCTION
 	 */
 
-	/**
-	 * @param comparator
-	 */
-	public ComparerHashMap(EqualityComparator<K> comparator) {
+	// TODO comments: map returned by supplier must not be shared with other instances
+	private EqualityComparatorMap(
+			EqualityComparator<? super K> comparator,
+			Supplier<? extends Map<EqualityComparatorObject<K>, V>> mapFactory) {
+
+		Objects.requireNonNull(comparator, "The argument 'comparator' must not be null.");
+		Objects.requireNonNull(mapFactory, "The argument 'mapFactory' must not be null.");
+
 		this.comparator = comparator;
-		innerMap = new HashMap<SimpleEqualityComparatorObject<K>, V>();
-		entries = new EntrySet(this);
-		keys = new KeySet(this);
-		values = new ValueCollection(this);
+		this.innerMap = mapFactory.get();
+		this.entries = new EntrySet(this);
+		this.keys = new KeySet(this);
+		this.values = new ValueCollection(this);
+	}
+
+	public static <K, V> Map<K, V> forHashMap(EqualityComparator<? super K> comparator) {
+		return new EqualityComparatorMap<>(comparator, HashMap::new);
 	}
 
 	/*
@@ -112,9 +121,11 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	@Override
 	public V put(K key, V value) {
-		return innerMap.put(new SimpleEqualityComparatorObject<K>(comparator, key), value);
+		EqualityComparatorObject<K> comparatorKey = new SimpleEqualityComparatorObject<K>(comparator, key);
+		return innerMap.put(comparatorKey, value);
 	}
 
+	// TODO remove
 	/**
 	 * Calls 'put' with the given entry's key and value.
 	 *
@@ -187,23 +198,20 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	/**
 	 * Skeletal implementation of the collection interface based on wrapping a comparator map.
-	 *
-	 * @author pan
-	 * @param <X>
 	 */
 	private abstract class WrappingCollection<X> implements Collection<X> {
 
 		/**
 		 * The wrapped comparator map.
 		 */
-		protected ComparerHashMap<K, V> comparatorMap;
+		protected EqualityComparatorMap<K, V> comparatorMap;
 
 		/**
 		 * Creates a new collection which wraps the given comparator map.
 		 *
 		 * @param map
 		 */
-		public WrappingCollection(ComparerHashMap<K, V> map) {
+		public WrappingCollection(EqualityComparatorMap<K, V> map) {
 			super();
 			this.comparatorMap = map;
 		}
@@ -310,21 +318,15 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 	/**
 	 * Skeletal implementation of the iterator interface based on wrapping an iterator over an entry set which has
 	 * comparator objects as keys.
-	 *
-	 * @author pan
-	 * @param <X>
 	 */
 	private abstract class WrappingIterator<X> implements Iterator<X> {
 
 		/**
 		 * The iterator over the entry set.
 		 */
-		protected Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator;
+		protected Iterator<Entry<EqualityComparatorObject<K>, V>> iterator;
 
-		/**
-		 * @param iterator
-		 */
-		public WrappingIterator(Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator) {
+		public WrappingIterator(Iterator<Entry<EqualityComparatorObject<K>, V>> iterator) {
 			super();
 			this.iterator = iterator;
 		}
@@ -343,15 +345,13 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	/**
 	 * A view on the given comparator hash map's entries.
-	 *
-	 * @author pan
 	 */
 	private class EntrySet extends WrappingCollection<Entry<K, V>> implements Set<Entry<K, V>> {
 
 		/**
 		 * @param map
 		 */
-		public EntrySet(ComparerHashMap<K, V> map) {
+		public EntrySet(EqualityComparatorMap<K, V> map) {
 			super(map);
 		}
 
@@ -396,11 +396,11 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	}
 
-	private class ComparerEntry implements Entry<K, V> {
+	private class EqualityComparatorEntry implements Entry<K, V> {
 
-		private Entry<SimpleEqualityComparatorObject<K>, V> wrappedEntry;
+		private Entry<EqualityComparatorObject<K>, V> wrappedEntry;
 
-		public ComparerEntry(Entry<SimpleEqualityComparatorObject<K>, V> entry) {
+		public EqualityComparatorEntry(Entry<EqualityComparatorObject<K>, V> entry) {
 			Objects.requireNonNull(entry);
 			Objects.requireNonNull(entry.getKey());
 			wrappedEntry = entry;
@@ -432,7 +432,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 				return false;
 			if (getClass() != obj.getClass())
 				return false;
-			ComparerEntry other = (ComparerEntry) obj;
+			EqualityComparatorEntry other = (EqualityComparatorEntry) obj;
 			if (!getOuterType().equals(other.getOuterType()))
 				return false;
 
@@ -446,8 +446,8 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 		 * @return
 		 */
 		@SuppressWarnings("rawtypes")
-		private ComparerHashMap getOuterType() {
-			return ComparerHashMap.this;
+		private EqualityComparatorMap getOuterType() {
+			return EqualityComparatorMap.this;
 		}
 
 		@Override
@@ -460,37 +460,33 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	/**
 	 * An iterator over an entry set.
-	 *
-	 * @author pan
 	 */
 	private class EntrySetIterator extends WrappingIterator<Entry<K, V>> {
 
 		/**
 		 * @param iterator
 		 */
-		public EntrySetIterator(Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator) {
+		public EntrySetIterator(Iterator<Entry<EqualityComparatorObject<K>, V>> iterator) {
 			super(iterator);
 		}
 
 		@Override
 		public Entry<K, V> next() {
-			Entry<SimpleEqualityComparatorObject<K>, V> entry = iterator.next();
-			return new ComparerEntry(entry);
+			Entry<EqualityComparatorObject<K>, V> entry = iterator.next();
+			return new EqualityComparatorEntry(entry);
 		}
 
 	}
 
 	/**
 	 * A view on the given comparator hash map's entries.
-	 *
-	 * @author pan
 	 */
 	private class KeySet extends WrappingCollection<K> implements Set<K> {
 
 		/**
 		 * @param map
 		 */
-		public KeySet(ComparerHashMap<K, V> map) {
+		public KeySet(EqualityComparatorMap<K, V> map) {
 			super(map);
 		}
 
@@ -528,15 +524,13 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	/**
 	 * An iterator over a key set.
-	 *
-	 * @author pan
 	 */
 	private class KeySetIterator extends WrappingIterator<K> {
 
 		/**
 		 * @param iterator
 		 */
-		public KeySetIterator(Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator) {
+		public KeySetIterator(Iterator<Entry<EqualityComparatorObject<K>, V>> iterator) {
 			super(iterator);
 		}
 
@@ -549,12 +543,10 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	/**
 	 * A value collection view for this map.
-	 *
-	 * @author pan
 	 */
 	private class ValueCollection extends WrappingCollection<V> {
 
-		public ValueCollection(ComparerHashMap<K, V> map) {
+		public ValueCollection(EqualityComparatorMap<K, V> map) {
 			super(map);
 		}
 
@@ -596,15 +588,13 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	/**
 	 * An iterator over a value collection.
-	 *
-	 * @author pan
 	 */
 	private class ValueCollectionIterator extends WrappingIterator<V> {
 
 		/**
 		 * @param iterator
 		 */
-		public ValueCollectionIterator(Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator) {
+		public ValueCollectionIterator(Iterator<Entry<EqualityComparatorObject<K>, V>> iterator) {
 			super(iterator);
 		}
 
