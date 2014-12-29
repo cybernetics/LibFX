@@ -9,9 +9,9 @@ import java.util.Objects;
 public class ComparerHashMapTest extends MapInterfaceTest<TestObject, String> {
 
 	/**
-	 * The comparer used to compare test keys.
+	 * The comparator used to compare test keys.
 	 */
-	private Comparer<TestObject> comparer;
+	private EqualityComparator<TestObject> comparator;
 
 	/**
 	 * Constructor
@@ -19,8 +19,8 @@ public class ComparerHashMapTest extends MapInterfaceTest<TestObject, String> {
 	public ComparerHashMapTest() {
 		super(true, true, true, true, true, true);
 
-		// create a new comparer which only uses the string attribute.
-		comparer = new Comparer<TestObject>() {
+		// create a new comparator which only uses the string attribute.
+		comparator = new EqualityComparator<TestObject>() {
 
 			@Override
 			public boolean equals(TestObject obj1, TestObject obj2) {
@@ -40,12 +40,12 @@ public class ComparerHashMapTest extends MapInterfaceTest<TestObject, String> {
 
 	@Override
 	protected Map<TestObject, String> makeEmptyMap() throws UnsupportedOperationException {
-		return new ComparerHashMap<>(comparer);
+		return new ComparerHashMap<>(comparator);
 	}
 
 	@Override
 	protected Map<TestObject, String> makePopulatedMap() throws UnsupportedOperationException {
-		ComparerHashMap<TestObject, String> map = new ComparerHashMap<>(comparer);
+		ComparerHashMap<TestObject, String> map = new ComparerHashMap<>(comparator);
 		map.put(new TestObject("a", 0), "A");
 		map.put(new TestObject("b", 1), "B");
 		map.put(new TestObject("d", 4), "D");

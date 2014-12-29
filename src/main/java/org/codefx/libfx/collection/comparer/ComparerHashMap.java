@@ -14,14 +14,14 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 	 */
 
 	/**
-	 * The comparer used for the key's equality and hash code.
+	 * The comparator used for the key's equality and hash code.
 	 */
-	private final Comparer<K> comparer;
+	private final EqualityComparator<K> comparator;
 
 	/**
 	 * The actual map used to store the objects.
 	 */
-	private final HashMap<ComparerObject<K>, V> innerMap;
+	private final HashMap<SimpleEqualityComparatorObject<K>, V> innerMap;
 
 	/**
 	 * The view on this map's entries.
@@ -43,11 +43,11 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 	 */
 
 	/**
-	 * @param comparer
+	 * @param comparator
 	 */
-	public ComparerHashMap(Comparer<K> comparer) {
-		this.comparer = comparer;
-		innerMap = new HashMap<ComparerObject<K>, V>();
+	public ComparerHashMap(EqualityComparator<K> comparator) {
+		this.comparator = comparator;
+		innerMap = new HashMap<SimpleEqualityComparatorObject<K>, V>();
 		entries = new EntrySet(this);
 		keys = new KeySet(this);
 		values = new ValueCollection(this);
@@ -58,16 +58,16 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 	 */
 
 	/**
-	 * Creates a new comparer object for the given key.<br>
+	 * Creates a new comparator object for the given key.<br>
 	 * If the key is not of type 'K', null is returned which has to be checked by the calling functions.
 	 *
 	 * @param key
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private ComparerObject<K> createKey(Object key) {
+	private EqualityComparatorObject<K> createKey(Object key) {
 		try {
-			return new ComparerObject<K>((K) key, comparer);
+			return new SimpleEqualityComparatorObject<K>(comparator, (K) key);
 		} catch (ClassCastException e) {
 			return null;
 		}
@@ -89,11 +89,11 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	@Override
 	public boolean containsKey(Object key) {
-		ComparerObject<K> comparerKey = createKey(key);
-		if (comparerKey == null)
+		EqualityComparatorObject<K> comparatorKey = createKey(key);
+		if (comparatorKey == null)
 			return false;
 		else
-			return innerMap.containsKey(comparerKey);
+			return innerMap.containsKey(comparatorKey);
 	}
 
 	@Override
@@ -103,16 +103,16 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	@Override
 	public V get(Object key) {
-		ComparerObject<K> comparerKey = createKey(key);
-		if (comparerKey == null)
+		EqualityComparatorObject<K> comparatorKey = createKey(key);
+		if (comparatorKey == null)
 			return null;
 		else
-			return innerMap.get(comparerKey);
+			return innerMap.get(comparatorKey);
 	}
 
 	@Override
 	public V put(K key, V value) {
-		return innerMap.put(new ComparerObject<K>(key, comparer), value);
+		return innerMap.put(new SimpleEqualityComparatorObject<K>(comparator, key), value);
 	}
 
 	/**
@@ -127,11 +127,11 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	@Override
 	public V remove(Object key) {
-		ComparerObject<K> comparerKey = createKey(key);
-		if (comparerKey == null)
+		EqualityComparatorObject<K> comparatorKey = createKey(key);
+		if (comparatorKey == null)
 			return null;
 		else
-			return innerMap.remove(comparerKey);
+			return innerMap.remove(comparatorKey);
 	}
 
 	@Override
@@ -186,7 +186,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 	 */
 
 	/**
-	 * Skeletal implementation of the collection interface based on wrapping a comparer map.
+	 * Skeletal implementation of the collection interface based on wrapping a comparator map.
 	 *
 	 * @author pan
 	 * @param <X>
@@ -194,35 +194,35 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 	private abstract class WrappingCollection<X> implements Collection<X> {
 
 		/**
-		 * The wrapped comparer map.
+		 * The wrapped comparator map.
 		 */
-		protected ComparerHashMap<K, V> comparerMap;
+		protected ComparerHashMap<K, V> comparatorMap;
 
 		/**
-		 * Creates a new collection which wraps the given comparer map.
+		 * Creates a new collection which wraps the given comparator map.
 		 *
 		 * @param map
 		 */
 		public WrappingCollection(ComparerHashMap<K, V> map) {
 			super();
-			this.comparerMap = map;
+			this.comparatorMap = map;
 		}
 
 		// PARTIAL IMPLEMENTATION OF 'Collection<X>'
 
 		@Override
 		public int size() {
-			return comparerMap.size();
+			return comparatorMap.size();
 		}
 
 		@Override
 		public boolean isEmpty() {
-			return comparerMap.isEmpty();
+			return comparatorMap.isEmpty();
 		}
 
 		@Override
 		public Object[] toArray() {
-			Object[] array = new Object[comparerMap.size()];
+			Object[] array = new Object[comparatorMap.size()];
 			int index = 0;
 			for (X entry : this)
 				array[index++] = entry;
@@ -290,7 +290,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 		@Override
 		public void clear() {
-			comparerMap.clear();
+			comparatorMap.clear();
 		}
 
 		// EQUALS AND HASHCODE
@@ -309,7 +309,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	/**
 	 * Skeletal implementation of the iterator interface based on wrapping an iterator over an entry set which has
-	 * comparer objects as keys.
+	 * comparator objects as keys.
 	 *
 	 * @author pan
 	 * @param <X>
@@ -319,12 +319,12 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 		/**
 		 * The iterator over the entry set.
 		 */
-		protected Iterator<Entry<ComparerObject<K>, V>> iterator;
+		protected Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator;
 
 		/**
 		 * @param iterator
 		 */
-		public WrappingIterator(Iterator<Entry<ComparerObject<K>, V>> iterator) {
+		public WrappingIterator(Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator) {
 			super();
 			this.iterator = iterator;
 		}
@@ -342,7 +342,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 	}
 
 	/**
-	 * A view on the given comparer hash map's entries.
+	 * A view on the given comparator hash map's entries.
 	 *
 	 * @author pan
 	 */
@@ -363,8 +363,8 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 			if (!(o instanceof Entry))
 				return false;
 			Entry<K, V> entry = (Entry<K, V>) o;
-			if (comparerMap.containsKey(entry.getKey())) {
-				V currentValue = comparerMap.get(entry.getKey());
+			if (comparatorMap.containsKey(entry.getKey())) {
+				V currentValue = comparatorMap.get(entry.getKey());
 				return Objects.equals(currentValue, entry.getValue());
 			} else
 				return false;
@@ -372,15 +372,15 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 		@Override
 		public Iterator<Entry<K, V>> iterator() {
-			return new EntrySetIterator(comparerMap.innerMap.entrySet().iterator());
+			return new EntrySetIterator(comparatorMap.innerMap.entrySet().iterator());
 		}
 
 		@Override
 		public boolean add(Entry<K, V> e) {
 			if (e.getKey() == null && e.getValue() == null)
 				throw new UnsupportedOperationException();
-			boolean alreadyInMap = comparerMap.containsKey(e.getKey());
-			V originalValue = comparerMap.put(e);
+			boolean alreadyInMap = comparatorMap.containsKey(e.getKey());
+			V originalValue = comparatorMap.put(e);
 			return !(alreadyInMap && Objects.equals(originalValue, e.getValue()));
 		}
 
@@ -388,7 +388,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 		@SuppressWarnings("unchecked")
 		public boolean remove(Object o) {
 			if (contains(o)) {
-				comparerMap.remove(((Entry<K, V>) o).getKey());
+				comparatorMap.remove(((Entry<K, V>) o).getKey());
 				return true;
 			} else
 				return false;
@@ -398,9 +398,9 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 	private class ComparerEntry implements Entry<K, V> {
 
-		private Entry<ComparerObject<K>, V> wrappedEntry;
+		private Entry<SimpleEqualityComparatorObject<K>, V> wrappedEntry;
 
-		public ComparerEntry(Entry<ComparerObject<K>, V> entry) {
+		public ComparerEntry(Entry<SimpleEqualityComparatorObject<K>, V> entry) {
 			Objects.requireNonNull(entry);
 			Objects.requireNonNull(entry.getKey());
 			wrappedEntry = entry;
@@ -441,7 +441,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 		}
 
 		/**
-		 * Returns this comparer entry's outer type.
+		 * Returns this comparator entry's outer type.
 		 *
 		 * @return
 		 */
@@ -468,20 +468,20 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 		/**
 		 * @param iterator
 		 */
-		public EntrySetIterator(Iterator<Entry<ComparerObject<K>, V>> iterator) {
+		public EntrySetIterator(Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator) {
 			super(iterator);
 		}
 
 		@Override
 		public Entry<K, V> next() {
-			Entry<ComparerObject<K>, V> entry = iterator.next();
+			Entry<SimpleEqualityComparatorObject<K>, V> entry = iterator.next();
 			return new ComparerEntry(entry);
 		}
 
 	}
 
 	/**
-	 * A view on the given comparer hash map's entries.
+	 * A view on the given comparator hash map's entries.
 	 *
 	 * @author pan
 	 */
@@ -498,27 +498,27 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 		@Override
 		public boolean contains(Object o) {
-			return comparerMap.containsKey(o);
+			return comparatorMap.containsKey(o);
 		}
 
 		@Override
 		public Iterator<K> iterator() {
-			return new KeySetIterator(comparerMap.innerMap.entrySet().iterator());
+			return new KeySetIterator(comparatorMap.innerMap.entrySet().iterator());
 		}
 
 		@Override
 		public boolean add(K key) {
-			if (comparerMap.containsKey(key))
+			if (comparatorMap.containsKey(key))
 				return false;
 
-			comparerMap.put(key, null);
+			comparatorMap.put(key, null);
 			return true;
 		}
 
 		@Override
 		public boolean remove(Object o) {
-			if (comparerMap.containsKey(o)) {
-				comparerMap.remove(o);
+			if (comparatorMap.containsKey(o)) {
+				comparatorMap.remove(o);
 				return true;
 			} else
 				return false;
@@ -536,7 +536,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 		/**
 		 * @param iterator
 		 */
-		public KeySetIterator(Iterator<Entry<ComparerObject<K>, V>> iterator) {
+		public KeySetIterator(Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator) {
 			super(iterator);
 		}
 
@@ -562,7 +562,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 		@Override
 		public boolean contains(Object o) {
-			for (Entry<K, V> entry : comparerMap.entries)
+			for (Entry<K, V> entry : comparatorMap.entries)
 				if (Objects.equals(entry.getValue(), o))
 					return true;
 			return false;
@@ -570,23 +570,23 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 
 		@Override
 		public Iterator<V> iterator() {
-			return new ValueCollectionIterator(comparerMap.innerMap.entrySet().iterator());
+			return new ValueCollectionIterator(comparatorMap.innerMap.entrySet().iterator());
 		}
 
 		@Override
 		public boolean add(V e) {
-			if (comparerMap.containsKey(null))
+			if (comparatorMap.containsKey(null))
 				throw new IllegalArgumentException(
 						"The map backing this collection already contains a null-key, so no value can be added without a key.");
-			comparerMap.put(null, e);
+			comparatorMap.put(null, e);
 			return true;
 		}
 
 		@Override
 		public boolean remove(Object o) {
-			for (Entry<K, V> entry : comparerMap.entries)
+			for (Entry<K, V> entry : comparatorMap.entries)
 				if (Objects.equals(entry.getValue(), o)) {
-					comparerMap.remove(entry.getKey());
+					comparatorMap.remove(entry.getKey());
 					return true;
 				}
 			return false;
@@ -604,7 +604,7 @@ public class ComparerHashMap<K, V> implements Map<K, V> {
 		/**
 		 * @param iterator
 		 */
-		public ValueCollectionIterator(Iterator<Entry<ComparerObject<K>, V>> iterator) {
+		public ValueCollectionIterator(Iterator<Entry<SimpleEqualityComparatorObject<K>, V>> iterator) {
 			super(iterator);
 		}
 

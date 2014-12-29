@@ -1,23 +1,21 @@
 package org.codefx.libfx.collection.comparer;
 
 /**
- * Wraps an object in order to use a {@link Comparer}'s methods for {@link Object#equals(Object) equals} and
- * {@link Object#hashCode() hashCode}. Two comparer objects can only be equal if they share the same comparer (otherwise
- * symmetry can not be guaranteed).
+ * Straight-forward implementation of {@link EqualityComparatorObject}.
  *
  * @param <T>
  *            The type of the wrapped objects.
  */
-class ComparerObject<T> {
+class SimpleEqualityComparatorObject<T> implements EqualityComparatorObject<T> {
 
 	/*
 	 * FIELDS
 	 */
 
 	/**
-	 * The comparer used for {@code equals} and {@code hashCode}.
+	 * The comparator used for {@code equals} and {@code hashCode}.
 	 */
-	private final Comparer<? super T> comparer;
+	private final EqualityComparator<? super T> comparator;
 
 	/**
 	 * The wrapped object.
@@ -29,15 +27,16 @@ class ComparerObject<T> {
 	 */
 
 	/**
-	 * Creates a new comparer object.
+	 * Creates a new comparator object.
 	 *
-	 * @param comparer
-	 *            the {@link Comparer} used by this instance
+	 * @param comparator
+	 *            the {@link EqualityComparator} used by this instance
 	 * @param object
 	 *            the wrapped object
 	 */
-	public ComparerObject(T object, Comparer<? super T> comparer) {
-		this.comparer = comparer;
+	public SimpleEqualityComparatorObject(EqualityComparator<? super T> comparator, T object) {
+		// TODO disallow object == null
+		this.comparator = comparator;
 		this.object = object;
 	}
 
@@ -52,25 +51,25 @@ class ComparerObject<T> {
 		if (obj == null)
 			return false;
 		// check whether both are of the same type, ignoring the erased generic type
-		if (!(obj instanceof ComparerObject<?>))
+		if (!(obj instanceof SimpleEqualityComparatorObject<?>))
 			return false;
-		ComparerObject<?> other = (ComparerObject<?>) obj;
-		// both objects must use the same comparer to ensure symmetry of 'equals'
-		if (comparer != other.comparer)
+		SimpleEqualityComparatorObject<?> other = (SimpleEqualityComparatorObject<?>) obj;
+		// both objects must use the same comparator to ensure symmetry of 'equals'
+		if (comparator != other.comparator)
 			return false;
 
-		// if both wrapped objects are null or reference the same object, both comparer objects equal
+		// if both wrapped objects are null or reference the same object, both comparator objects equal
 		if (object == other.object)
 			return true;
 		// if only one if the wrapped objects is null, they are not equal
 		if (object == null || other.object == null)
 			return false;
 
-		// use 'comparer' to check equality
+		// use 'comparator' to check equality
 		try {
 			@SuppressWarnings("unchecked")
 			T otherObject = (T) other.object;
-			return comparer.equals(object, otherObject);
+			return comparator.equals(object, otherObject);
 		} catch (ClassCastException e) {
 			// if the cast fails, there can be no equality between the two objects.
 			return false;
@@ -82,22 +81,20 @@ class ComparerObject<T> {
 		if (object == null)
 			return 0;
 		else
-			// use 'comparer' to compute the hash code
-			return comparer.hashCode(object);
+			// use 'comparator' to compute the hash code
+			return comparator.hashCode(object);
 	}
 
 	@Override
 	public String toString() {
-		return "ComparerObject of [" + object.toString() + "]";
+		return "SimpleEqualityComparatorObject [" + object.toString() + "]";
 	}
 
 	/*
 	 * FIELD ACCESS
 	 */
 
-	/**
-	 * @return the wrapped object
-	 */
+	@Override
 	public T getObject() {
 		return object;
 	}

@@ -1,14 +1,15 @@
 package org.codefx.libfx.collection.comparer;
 
 /**
- * A comparer encapsulates {@link #equals(Object, Object) equals} and {@link #hashCode(Object) hashCode} methods.
+ * An equality comparator defines {@link #equals(Object, Object) equals} and {@link #hashCode(Object) hashCode} methods
+ * for a type {@code T}.
  * <p>
  * Both methods must follow their individual and shared contracts.
  *
  * @param <T>
  *            the type to which these methods can be applied
  */
-public interface Comparer<T> {
+public interface EqualityComparator<T> {
 
 	/**
 	 * Compares obj1 and obj2 for equality.
