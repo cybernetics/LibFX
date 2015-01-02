@@ -77,17 +77,35 @@ public class EqualityComparatorMap<K, V> implements Map<K, V> {
 	 */
 
 	/**
-	 * Creates a new comparator object for the given key.
+	 * Creates a new comparator object for the specified key.
 	 *
 	 * @param key
 	 *            the key for which a equality comparer wrapper will be constructed
 	 * @return a new instance of {@link EqualityComparatorObject}
-	 * @throws ClassCastException
-	 *             if the specified {@code key} can not be used as an argument to {@link #comparator}
 	 */
-	private EqualityComparatorObject<K> createEqualityComparatorKey(Object key) throws ClassCastException {
+	private EqualityComparatorObject<K> createTypeSafeEqualityComparatorKey(K key) {
 		Objects.requireNonNull(key, "The argument 'key' must not be null.");
-		return new HashCachingEqualityComparatorObject<>(comparator, key);
+		return new SimpleEqualityComparatorObject<>(comparator, key);
+	}
+
+	/**
+	 * Creates a new comparator object for the specified key.
+	 * <p>
+	 * This requires an unchecked cast of the key to the erased type {@code K}. This can lead to
+	 * {@link ClassCastException}s when the instance is of the wrong type and actually used by being passed to the
+	 * {@link #comparator}. Calling functions have to check whether this is in accordance with the contract.
+	 *
+	 * @param key
+	 *            the key for which a equality comparer wrapper will be constructed
+	 * @return a new instance of {@link EqualityComparatorObject} which might throw {@link ClassCastException} when
+	 *         {@code equals} or {@code hashCode} is called on it
+	 */
+	private EqualityComparatorObject<K> createTypeUnsafeEqualityComparatorKey(Object key) {
+		Objects.requireNonNull(key, "The argument 'key' must not be null.");
+
+		@SuppressWarnings("unchecked")
+		K unsafelyTypedKey = (K) key;
+		return new SimpleEqualityComparatorObject<>(comparator, unsafelyTypedKey);
 	}
 
 	/*
@@ -106,7 +124,8 @@ public class EqualityComparatorMap<K, V> implements Map<K, V> {
 
 	@Override
 	public boolean containsKey(Object key) {
-		EqualityComparatorObject<K> eqKey = createEqualityComparatorKey(key);
+		EqualityComparatorObject<K> eqKey = createTypeUnsafeEqualityComparatorKey(key);
+		// can throw ClassCastException - this is in accordance with the contract
 		return innerMap.containsKey(eqKey);
 	}
 
@@ -117,13 +136,14 @@ public class EqualityComparatorMap<K, V> implements Map<K, V> {
 
 	@Override
 	public V get(Object key) {
-		EqualityComparatorObject<K> eqKey = createEqualityComparatorKey(key);
+		EqualityComparatorObject<K> eqKey = createTypeUnsafeEqualityComparatorKey(key);
+		// can throw ClassCastException - this is in accordance with the contract
 		return innerMap.get(eqKey);
 	}
 
 	@Override
 	public V put(K key, V value) {
-		EqualityComparatorObject<K> eqKey = createEqualityComparatorKey(key);
+		EqualityComparatorObject<K> eqKey = createTypeSafeEqualityComparatorKey(key);
 		return innerMap.put(eqKey, value);
 	}
 
@@ -140,12 +160,14 @@ public class EqualityComparatorMap<K, V> implements Map<K, V> {
 
 	@Override
 	public V remove(Object key) {
-		EqualityComparatorObject<K> eqKey = createEqualityComparatorKey(key);
+		EqualityComparatorObject<K> eqKey = createTypeUnsafeEqualityComparatorKey(key);
+		// can throw ClassCastException - this is in accordance with the contract
 		return innerMap.remove(eqKey);
 	}
 
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
+		// TODO is there a way to implement this so innerMap.putAll can be called?
 		for (Entry<? extends K, ? extends V> entry : m.entrySet())
 			put(entry);
 	}
@@ -211,7 +233,6 @@ public class EqualityComparatorMap<K, V> implements Map<K, V> {
 		 * @param map
 		 */
 		public WrappingCollection(EqualityComparatorMap<K, V> map) {
-			super();
 			this.comparatorMap = map;
 		}
 

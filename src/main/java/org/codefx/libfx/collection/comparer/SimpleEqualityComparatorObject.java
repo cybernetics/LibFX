@@ -1,23 +1,12 @@
 package org.codefx.libfx.collection.comparer;
 
 /**
- * Implementation of {@link EqualityComparatorObject} which caches the hash code during construction. This has the added
- * effect that a {@link ClassCastException} will be thrown during construction if the comparator can not compute the
- * hash code of the specified object.
+ * Straight-forward implementation of {@link EqualityComparatorObject}.
  *
  * @param <T>
  *            The type of the wrapped objects.
  */
-final class HashCachingEqualityComparatorObject<T> extends AbstractEqualityComparatorObject<T> {
-
-	/*
-	 * FIELDS
-	 */
-
-	/**
-	 * The {@link #object}'s hash code.
-	 */
-	private final int hashCode;
+final class SimpleEqualityComparatorObject<T> extends AbstractEqualityComparatorObject<T> {
 
 	/*
 	 * CONSTRUCTOR
@@ -31,9 +20,8 @@ final class HashCachingEqualityComparatorObject<T> extends AbstractEqualityCompa
 	 * @param object
 	 *            the wrapped object
 	 */
-	public HashCachingEqualityComparatorObject(EqualityComparator<? super T> comparator, T object) {
+	public SimpleEqualityComparatorObject(EqualityComparator<? super T> comparator, T object) {
 		super(comparator, object);
-		this.hashCode = comparator.hashCode(object);
 	}
 
 	/*
@@ -47,9 +35,9 @@ final class HashCachingEqualityComparatorObject<T> extends AbstractEqualityCompa
 		if (obj == null)
 			return false;
 		// check whether both are of the same type, ignoring the erased generic type
-		if (!(obj instanceof HashCachingEqualityComparatorObject<?>))
+		if (!(obj instanceof SimpleEqualityComparatorObject<?>))
 			return false;
-		HashCachingEqualityComparatorObject<?> other = (HashCachingEqualityComparatorObject<?>) obj;
+		SimpleEqualityComparatorObject<?> other = (SimpleEqualityComparatorObject<?>) obj;
 		// both objects must use the same comparator to ensure symmetry of 'equals'
 		if (comparator != other.comparator)
 			return false;
@@ -57,9 +45,6 @@ final class HashCachingEqualityComparatorObject<T> extends AbstractEqualityCompa
 		// the comparator objects equal if both reference the same object
 		if (object == other.object)
 			return true;
-		// if the hash codes differ, the wrapped objects are different
-		if (hashCode != other.hashCode)
-			return false;
 
 		// use 'comparator' to check equality
 		@SuppressWarnings("unchecked")
@@ -71,7 +56,7 @@ final class HashCachingEqualityComparatorObject<T> extends AbstractEqualityCompa
 
 	@Override
 	public int hashCode() {
-		return hashCode;
+		return comparator.hashCode(object);
 	}
 
 }
